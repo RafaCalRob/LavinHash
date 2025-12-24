@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LavinHash Browser Example</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        textarea {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            font-family: monospace;
+            resize: vertical;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-left: 4px solid #4CAF50;
+            border-radius: 4px;
+        }
+        .error {
+            border-left-color: #f44336;
+            background: #ffebee;
+        }
+        .similarity-bar {
+            width: 100%;
+            height: 30px;
+            background: #e0e0e0;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .similarity-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #f44336, #ff9800, #4CAF50);
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>LavinHash - Fuzzy Hashing Demo</h1>
+        <p>Compare text similarity using the LavinHash WASM library.</p>
+
+        <h3>Text 1:</h3>
+        <textarea id="text1" rows="4" placeholder="Enter first text...">The quick brown fox jumps over the lazy dog</textarea>
+
+        <h3>Text 2:</h3>
+        <textarea id="text2" rows="4" placeholder="Enter second text...">The quick brown fox leaps over the lazy dog</textarea>
+
+        <button id="compareBtn">Compare Texts</button>
+        <button id="clearBtn">Clear</button>
+
+        <div id="result"></div>
+    </div>
+
+    <script type="module">
+        import init, { wasm_compare_data } from '../pkg/lavinhash.js';
+
+        // Initialize WASM
+        let wasmReady = false;
+        const resultDiv = document.getElementById('result');
+        const compareBtn = document.getElementById('compareBtn');
+
+        async function initWasm() {
+            try {
+                await init();
+                wasmReady = true;
+                compareBtn.disabled = false;
+                console.log('LavinHash WASM initialized successfully');
+            } catch (error) {
+                showResult('Failed to initialize WASM: ' + error, true);
+                compareBtn.disabled = true;
+            }
+        }
+
+        function showResult(message, isError = false) {
+            resultDiv.className = 'result' + (isError ? ' error' : '');
+            resultDiv.innerHTML = message;
+        }
+
+        function compareTexts() {
+            if (!wasmReady) {
+                showResult('WASM not initialized yet. Please wait...', true);
+                return;
+            }
+
+            const text1 = document.getElementById('text1').value;
+            const text2 = document.getElementById('text2').value;
+
+            if (!text1 || !text2) {
+                showResult('Please enter both texts', true);
+                return;
+            }
+
+            try {
+                const encoder = new TextEncoder();
+                const data1 = encoder.encode(text1);
+                const data2 = encoder.encode(text2);
+
+                const similarity = wasm_compare_data(data1, data2);
+
+                const barHTML = `
+                    <div class="similarity-bar">
+                        <div class="similarity-fill" style="width: ${similarity}%">
+                            ${similarity}%
+                        </div>
+                    </div>
+                `;
+
+                let interpretation = '';
+                if (similarity >= 90) {
+                    interpretation = '✅ <strong>Very similar</strong> - Texts are nearly identical';
+                } else if (similarity >= 70) {
+                    interpretation = '🟡 <strong>Similar</strong> - Texts share significant content';
+                } else if (similarity >= 40) {
+                    interpretation = '🟠 <strong>Somewhat similar</strong> - Some common elements';
+                } else {
+                    interpretation = '❌ <strong>Different</strong> - Texts are quite distinct';
+                }
+
+                showResult(`
+                    <h3>Similarity Score: ${similarity}%</h3>
+                    ${barHTML}
+                    <p>${interpretation}</p>
+                    <hr>
+                    <p><small>
+                        Text 1 length: ${text1.length} chars<br>
+                        Text 2 length: ${text2.length} chars
+                    </small></p>
+                `);
+            } catch (error) {
+                showResult('Error comparing texts: ' + error, true);
+            }
+        }
+
+        function clearInputs() {
+            document.getElementById('text1').value = '';
+            document.getElementById('text2').value = '';
+            resultDiv.innerHTML = '';
+        }
+
+        // Event listeners
+        document.getElementById('compareBtn').addEventListener('click', compareTexts);
+        document.getElementById('clearBtn').addEventListener('click', clearInputs);
+
+        // Initialize on load
+        compareBtn.disabled = true;
+        initWasm();
+    </script>
+</body>
+</html>

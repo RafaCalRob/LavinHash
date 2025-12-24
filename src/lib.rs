@@ -9,6 +9,9 @@ pub mod algo;
 pub mod model;
 pub mod utils;
 
+#[cfg(target_arch = "wasm32")]
+pub mod wasm;
+
 use algo::{BloomFilter, BloomFilterBuilder, BuzHash, generate_structural_vector};
 use model::{FuzzyFingerprint, FingerprintError};
 use rayon::prelude::*;
