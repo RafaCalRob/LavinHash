@@ -1,0 +1,45 @@
+{
+  "name": "lavinhash",
+  "version": "1.0.0",
+  "description": "High-performance fuzzy hashing library implementing the DLAH (Dual-Layer Adaptive Hashing) algorithm",
+  "main": "wasm/lavinhash.js",
+  "types": "wasm/lavinhash.d.ts",
+  "files": [
+    "wasm/*.js",
+    "wasm/*.wasm",
+    "wasm/*.d.ts",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build:wasm": "wasm-pack build --target web --out-dir wasm --out-name lavinhash",
+    "build": "cargo build --release && npm run build:wasm",
+    "test": "cargo test",
+    "bench": "cargo bench"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RafaCalRob/LavinHash.git"
+  },
+  "keywords": [
+    "fuzzy-hashing",
+    "similarity",
+    "hash",
+    "fingerprint",
+    "dlah",
+    "wasm",
+    "rust",
+    "file-similarity",
+    "duplicate-detection"
+  ],
+  "author": "LavinHash Contributors",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/RafaCalRob/LavinHash/issues"
+  },
+  "homepage": "https://bdovenbird.com/lavinhash/",
+  "devDependencies": {},
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
