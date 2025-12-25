@@ -40,23 +40,69 @@ cargo build --release
 
 ## Quick Start
 
-### JavaScript/Node.js (CommonJS)
+### React (Vite, Create React App, Next.js)
 
 ```javascript
-const { wasm_compare_data, wasm_generate_hash } = require('lavinhash');
+import { wasm_compare_data } from 'lavinhash';
 
-// Compare two texts directly
-const encoder = new TextEncoder();
-const text1 = encoder.encode("The quick brown fox jumps over the lazy dog");
-const text2 = encoder.encode("The quick brown fox leaps over the lazy dog");
+function App() {
+  const checkSimilarity = () => {
+    const encoder = new TextEncoder();
+    const text1 = encoder.encode("The quick brown fox jumps over the lazy dog");
+    const text2 = encoder.encode("The quick brown fox leaps over the lazy dog");
 
-const similarity = wasm_compare_data(text1, text2);
-console.log(`Similarity: ${similarity}%`); // Output: Similarity: 95%
+    const similarity = wasm_compare_data(text1, text2);
+    console.log(`Similarity: ${similarity}%`); // Output: Similarity: 95%
+  };
+
+  return <button onClick={checkSimilarity}>Check Similarity</button>;
+}
 ```
 
-### JavaScript with Bundlers (Webpack, Vite, Rollup)
+### Angular
 
-If you're using a modern bundler, you can use ES modules:
+```typescript
+import { Component } from '@angular/core';
+import { wasm_compare_data } from 'lavinhash';
+
+@Component({
+  selector: 'app-root',
+  template: '<button (click)="checkSimilarity()">Check Similarity</button>'
+})
+export class AppComponent {
+  checkSimilarity() {
+    const encoder = new TextEncoder();
+    const text1 = encoder.encode("Sample text");
+    const text2 = encoder.encode("Sample text modified");
+
+    const similarity = wasm_compare_data(text1, text2);
+    console.log(`Similarity: ${similarity}%`);
+  }
+}
+```
+
+### Vue 3 (Vite, Nuxt 3)
+
+```vue
+<script setup>
+import { wasm_compare_data } from 'lavinhash';
+
+const checkSimilarity = () => {
+  const encoder = new TextEncoder();
+  const text1 = encoder.encode("Sample text");
+  const text2 = encoder.encode("Sample text modified");
+
+  const similarity = wasm_compare_data(text1, text2);
+  console.log(`Similarity: ${similarity}%`);
+};
+</script>
+
+<template>
+  <button @click="checkSimilarity">Check Similarity</button>
+</template>
+```
+
+### Vanilla JavaScript (with bundler)
 
 ```javascript
 import { wasm_compare_data, wasm_generate_hash } from 'lavinhash';
@@ -68,8 +114,6 @@ const text2 = encoder.encode("Sample text modified");
 const similarity = wasm_compare_data(text1, text2);
 console.log(`Similarity: ${similarity}%`);
 ```
-
-Note: For bundler support, rebuild with `wasm-pack build --target bundler`
 
 ### Rust
 
@@ -291,13 +335,20 @@ config.enable_parallel = true;
 Compare different versions of documents to detect modifications and measure similarity.
 
 ```javascript
-const { readFileSync } = require('fs');
-const { wasm_compare_data } = require('lavinhash');
+import { wasm_compare_data } from 'lavinhash';
 
-const doc1 = readFileSync('document_v1.txt');
-const doc2 = readFileSync('document_v2.txt');
-const similarity = wasm_compare_data(doc1, doc2);
-console.log(`Similarity: ${similarity}%`);
+// In a React/Vue/Angular app with file upload
+async function compareDocuments(file1, file2) {
+  const buffer1 = await file1.arrayBuffer();
+  const buffer2 = await file2.arrayBuffer();
+
+  const data1 = new Uint8Array(buffer1);
+  const data2 = new Uint8Array(buffer2);
+
+  const similarity = wasm_compare_data(data1, data2);
+  console.log(`Similarity: ${similarity}%`);
+  return similarity;
+}
 ```
 
 ### Duplicate Detection
@@ -325,20 +376,42 @@ for i in 0..hashes.len() {
 Track changes between different versions of files or content.
 
 ```javascript
-const { readFileSync } = require('fs');
-const { wasm_generate_hash, wasm_compare_hashes } = require('lavinhash');
+import { wasm_generate_hash, wasm_compare_hashes } from 'lavinhash';
 
-const versions = ['v1.txt', 'v2.txt', 'v3.txt'];
-const hashes = versions.map(v => {
-    const data = readFileSync(v);
+// Compare multiple file versions
+async function trackVersions(files) {
+  const encoder = new TextEncoder();
+
+  const hashes = files.map(content => {
+    const data = encoder.encode(content);
     return wasm_generate_hash(data);
-});
+  });
 
-for (let i = 0; i < hashes.length - 1; i++) {
+  const results = [];
+  for (let i = 0; i < hashes.length - 1; i++) {
     const sim = wasm_compare_hashes(hashes[i], hashes[i + 1]);
-    console.log(`${versions[i]} -> ${versions[i+1]}: ${sim}% similar`);
+    results.push({
+      from: `v${i+1}`,
+      to: `v${i+2}`,
+      similarity: sim
+    });
+  }
+
+  return results;
 }
 ```
+
+## Framework Compatibility
+
+LavinHash works seamlessly with all modern JavaScript frameworks and build tools:
+
+- **React**: Vite, Create React App, Next.js, Remix
+- **Angular**: Angular CLI (v12+)
+- **Vue**: Vue 3, Nuxt 3, Vite
+- **Svelte**: SvelteKit, Vite
+- **Build Tools**: Webpack 5+, Vite, Rollup, Parcel, esbuild
+
+The library uses ES modules and is optimized for modern bundlers.
 
 ## Building WASM
 
@@ -348,10 +421,7 @@ To build the WebAssembly bindings:
 # Install wasm-pack
 cargo install wasm-pack
 
-# Build for Node.js (CommonJS, recommended for npm)
-wasm-pack build --target nodejs --out-dir pkg --out-name lavinhash
-
-# Or build for bundlers (Webpack, Vite, Rollup)
+# Build for modern bundlers (React, Angular, Vue, etc.)
 wasm-pack build --target bundler --out-dir pkg --out-name lavinhash
 
 # The compiled files will be in the pkg/ directory

@@ -1,12 +1,11 @@
-// JavaScript/Node.js Example for LavinHash
-//
-// This example demonstrates how to use LavinHash with WASM in a Node.js environment
+// JavaScript Example for LavinHash
+// Works with modern bundlers (Vite, Webpack, Rollup, etc.)
 
-const {
+import {
   wasm_generate_hash,
   wasm_compare_hashes,
   wasm_compare_data
-} = require('../pkg/lavinhash.js');
+} from '../pkg/lavinhash.js';
 
 console.log('LavinHash JavaScript Example\n');
 
@@ -60,18 +59,22 @@ try {
   console.error('Error:', error);
 }
 
-// Example 4: File comparison
+// Example 4: File comparison in web apps
 console.log('=== Example 4: File Comparison ===');
 console.log(`
-// In a real application with file system access:
-const { readFileSync } = require('fs');
-const { wasm_compare_data } = require('lavinhash');
+// In a React/Vue/Angular app with file upload:
+import { wasm_compare_data } from 'lavinhash';
 
-const file1 = readFileSync('document1.txt');
-const file2 = readFileSync('document2.txt');
+async function handleFileUpload(file1, file2) {
+  const buffer1 = await file1.arrayBuffer();
+  const buffer2 = await file2.arrayBuffer();
 
-const similarity = wasm_compare_data(file1, file2);
-console.log('Files similarity:', similarity + '%');
+  const data1 = new Uint8Array(buffer1);
+  const data2 = new Uint8Array(buffer2);
+
+  const similarity = wasm_compare_data(data1, data2);
+  console.log('Files similarity:', similarity + '%');
+}
 `);
 
 // Example 5: Batch processing
