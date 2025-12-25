@@ -40,15 +40,10 @@ cargo build --release
 
 ## Quick Start
 
-### JavaScript/Node.js
+### JavaScript/Node.js (CommonJS)
 
 ```javascript
-import { readFile } from 'fs/promises';
-import init, { wasm_compare_data, wasm_generate_hash } from 'lavinhash';
-
-// Initialize WASM module
-const wasmBuffer = await readFile('./node_modules/lavinhash/lavinhash_bg.wasm');
-await init(wasmBuffer);
+const { wasm_compare_data, wasm_generate_hash } = require('lavinhash');
 
 // Compare two texts directly
 const encoder = new TextEncoder();
@@ -59,24 +54,22 @@ const similarity = wasm_compare_data(text1, text2);
 console.log(`Similarity: ${similarity}%`); // Output: Similarity: 95%
 ```
 
-### JavaScript/Browser
+### JavaScript with Bundlers (Webpack, Vite, Rollup)
 
-```html
-<script type="module">
-  import init, { wasm_compare_data } from './lavinhash.js';
+If you're using a modern bundler, you can use ES modules:
 
-  // Initialize (automatic in browsers)
-  await init();
+```javascript
+import { wasm_compare_data, wasm_generate_hash } from 'lavinhash';
 
-  // Compare data
-  const encoder = new TextEncoder();
-  const data1 = encoder.encode("Sample text");
-  const data2 = encoder.encode("Sample text modified");
+const encoder = new TextEncoder();
+const text1 = encoder.encode("Sample text");
+const text2 = encoder.encode("Sample text modified");
 
-  const similarity = wasm_compare_data(data1, data2);
-  console.log(`Similarity: ${similarity}%`);
-</script>
+const similarity = wasm_compare_data(text1, text2);
+console.log(`Similarity: ${similarity}%`);
 ```
+
+Note: For bundler support, rebuild with `wasm-pack build --target bundler`
 
 ### Rust
 
@@ -298,9 +291,13 @@ config.enable_parallel = true;
 Compare different versions of documents to detect modifications and measure similarity.
 
 ```javascript
-const doc1 = await readFile('document_v1.txt');
-const doc2 = await readFile('document_v2.txt');
+const { readFileSync } = require('fs');
+const { wasm_compare_data } = require('lavinhash');
+
+const doc1 = readFileSync('document_v1.txt');
+const doc2 = readFileSync('document_v2.txt');
 const similarity = wasm_compare_data(doc1, doc2);
+console.log(`Similarity: ${similarity}%`);
 ```
 
 ### Duplicate Detection
@@ -328,13 +325,14 @@ for i in 0..hashes.len() {
 Track changes between different versions of files or content.
 
 ```javascript
+const { readFileSync } = require('fs');
+const { wasm_generate_hash, wasm_compare_hashes } = require('lavinhash');
+
 const versions = ['v1.txt', 'v2.txt', 'v3.txt'];
-const hashes = await Promise.all(
-    versions.map(async v => {
-        const data = await readFile(v);
-        return wasm_generate_hash(data);
-    })
-);
+const hashes = versions.map(v => {
+    const data = readFileSync(v);
+    return wasm_generate_hash(data);
+});
 
 for (let i = 0; i < hashes.length - 1; i++) {
     const sim = wasm_compare_hashes(hashes[i], hashes[i + 1]);
@@ -350,8 +348,11 @@ To build the WebAssembly bindings:
 # Install wasm-pack
 cargo install wasm-pack
 
-# Build for web
-wasm-pack build --target web --out-dir pkg --out-name lavinhash
+# Build for Node.js (CommonJS, recommended for npm)
+wasm-pack build --target nodejs --out-dir pkg --out-name lavinhash
+
+# Or build for bundlers (Webpack, Vite, Rollup)
+wasm-pack build --target bundler --out-dir pkg --out-name lavinhash
 
 # The compiled files will be in the pkg/ directory
 ```
