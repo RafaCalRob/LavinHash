@@ -1,46 +1,21 @@
 # LavinHash
 
-[![Crates.io](https://img.shields.io/crates/v/lavinhash)](https://crates.io/crates/lavinhash)
-[![npm](https://img.shields.io/npm/v/lavinhash)](https://www.npmjs.com/package/lavinhash)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+High-performance fuzzy hashing library implementing the Dual-Layer Adaptive Hashing (DLAH) algorithm for detecting file and text similarity.
 
-High-performance fuzzy hashing library implementing the **DLAH (Dual-Layer Adaptive Hashing)** algorithm for detecting file similarity with extreme efficiency.
+## Overview
 
-**[Demo](https://bdovenbird.com/lavinhash/)** | **[Documentation](https://docs.rs/lavinhash)** | **[Crate](https://crates.io/crates/lavinhash)**
+LavinHash is a Rust-based fuzzy hashing library that analyzes both structural patterns and content features to compute similarity scores between data. The library uses a dual-layer approach that separates structural similarity (topology) from content similarity (semantic features), providing accurate similarity detection even for modified or partially similar data.
 
-## Features
+**Key Features:**
 
-- **Dual-Layer Architecture**: Separates structural (topology) and content (semantic) similarity
-- **Adaptive Scaling**: Maintains constant-time comparison regardless of file size
-- **High Performance**: Rust core with SIMD optimizations and parallel processing
-- **WebAssembly Support**: Run in browsers and Node.js
-- **Cross-Platform**: Works on Linux, macOS, Windows, and WASM targets
-- **FFI Ready**: C-compatible API for integration with other languages
-
-## How It Works
-
-LavinHash implements a three-phase pipeline:
-
-1. **Phase I - Normalization**: Case folding, whitespace collapsing (lazy, zero-copy)
-2. **Phase II - Structural Hash**: Shannon entropy vectors with adaptive block sizing
-3. **Phase III - Content Hash**: BuzHash rolling hash + Bloom filter (8192 bits)
-
-The similarity score combines both layers:
-
-```
-Similarity = α × Levenshtein(Structure) + (1-α) × Jaccard(Content)
-```
-
-Where α = 0.3 by default (30% structure, 70% content).
+- Dual-layer similarity analysis (structure + content)
+- Adaptive scaling for constant-time comparison regardless of file size
+- Cross-platform support (Linux, macOS, Windows, WebAssembly)
+- High performance with SIMD optimizations and parallel processing
+- Multiple language bindings (JavaScript/TypeScript, with more planned)
+- Deterministic hashing across all platforms
 
 ## Installation
-
-### Rust
-
-```toml
-[dependencies]
-lavinhash = "1.0"
-```
 
 ### JavaScript/TypeScript (npm)
 
@@ -48,7 +23,14 @@ lavinhash = "1.0"
 npm install lavinhash
 ```
 
-### From Source
+### Rust (crates.io)
+
+```toml
+[dependencies]
+lavinhash = "1.0"
+```
+
+### Building from Source
 
 ```bash
 git clone https://github.com/RafaCalRob/LavinHash.git
@@ -58,14 +40,52 @@ cargo build --release
 
 ## Quick Start
 
+### JavaScript/Node.js
+
+```javascript
+import { readFile } from 'fs/promises';
+import init, { wasm_compare_data, wasm_generate_hash } from 'lavinhash';
+
+// Initialize WASM module
+const wasmBuffer = await readFile('./node_modules/lavinhash/lavinhash_bg.wasm');
+await init(wasmBuffer);
+
+// Compare two texts directly
+const encoder = new TextEncoder();
+const text1 = encoder.encode("The quick brown fox jumps over the lazy dog");
+const text2 = encoder.encode("The quick brown fox leaps over the lazy dog");
+
+const similarity = wasm_compare_data(text1, text2);
+console.log(`Similarity: ${similarity}%`); // Output: Similarity: 95%
+```
+
+### JavaScript/Browser
+
+```html
+<script type="module">
+  import init, { wasm_compare_data } from './lavinhash.js';
+
+  // Initialize (automatic in browsers)
+  await init();
+
+  // Compare data
+  const encoder = new TextEncoder();
+  const data1 = encoder.encode("Sample text");
+  const data2 = encoder.encode("Sample text modified");
+
+  const similarity = wasm_compare_data(data1, data2);
+  console.log(`Similarity: ${similarity}%`);
+</script>
+```
+
 ### Rust
 
 ```rust
 use lavinhash::{generate_hash, compare_hashes, HashConfig};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let data1 = b"The quick brown fox jumps over the lazy dog";
-    let data2 = b"The quick brown fox leaps over the lazy dog";
+    let data1 = b"Document content version 1";
+    let data2 = b"Document content version 2";
 
     let config = HashConfig::default();
 
@@ -79,111 +99,332 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-### JavaScript/Node.js
+## API Reference
 
+### JavaScript/WASM API
+
+#### `wasm_generate_hash(data: Uint8Array): Uint8Array`
+
+Generates a fuzzy hash fingerprint from input data.
+
+**Parameters:**
+- `data`: Input data as Uint8Array
+
+**Returns:**
+- Serialized fingerprint (approximately 1KB)
+
+**Example:**
 ```javascript
-import init, { generate_hash, compare_hashes } from 'lavinhash';
-
-await init();
-
-const encoder = new TextEncoder();
-const data1 = encoder.encode("The quick brown fox jumps over the lazy dog");
-const data2 = encoder.encode("The quick brown fox leaps over the lazy dog");
-
-const hash1 = generate_hash(data1);
-const hash2 = generate_hash(data2);
-
-const similarity = compare_hashes(hash1, hash2);
-console.log(`Similarity: ${similarity}%`);
+const data = encoder.encode("Text to hash");
+const hash = wasm_generate_hash(data);
+console.log(`Hash size: ${hash.length} bytes`);
 ```
 
-## Configuration
+#### `wasm_compare_hashes(hash_a: Uint8Array, hash_b: Uint8Array): number`
 
+Compares two previously generated hashes.
+
+**Parameters:**
+- `hash_a`: First fingerprint
+- `hash_b`: Second fingerprint
+
+**Returns:**
+- Similarity score (0-100)
+
+**Example:**
+```javascript
+const hash1 = wasm_generate_hash(data1);
+const hash2 = wasm_generate_hash(data2);
+const similarity = wasm_compare_hashes(hash1, hash2);
+```
+
+#### `wasm_compare_data(data_a: Uint8Array, data_b: Uint8Array): number`
+
+Generates hashes and compares in a single operation.
+
+**Parameters:**
+- `data_a`: First data array
+- `data_b`: Second data array
+
+**Returns:**
+- Similarity score (0-100)
+
+**Example:**
+```javascript
+const similarity = wasm_compare_data(text1, text2);
+```
+
+### Rust API
+
+#### `generate_hash(data: &[u8], config: &HashConfig) -> Result<FuzzyFingerprint, FingerprintError>`
+
+Generates a fuzzy hash from input data.
+
+**Parameters:**
+- `data`: Input data slice
+- `config`: Configuration options
+
+**Returns:**
+- `Ok(FuzzyFingerprint)`: Generated fingerprint
+- `Err(FingerprintError)`: Error if data is invalid
+
+#### `compare_hashes(hash_a: &FuzzyFingerprint, hash_b: &FuzzyFingerprint, alpha: f32) -> u8`
+
+Compares two fingerprints.
+
+**Parameters:**
+- `hash_a`: First fingerprint
+- `hash_b`: Second fingerprint
+- `alpha`: Weight coefficient (0.0-1.0, default 0.3)
+
+**Returns:**
+- Similarity score (0-100)
+
+#### `HashConfig`
+
+Configuration structure for hash generation.
+
+**Fields:**
+- `enable_parallel: bool` - Enable parallel processing for large files (default: true)
+- `alpha: f32` - Weight for structure vs content (default: 0.3)
+- `min_modulus: u64` - Feature density control (default: 16)
+
+**Example:**
 ```rust
 let mut config = HashConfig::default();
-config.alpha = 0.5;              // 50% structure, 50% content
-config.enable_parallel = true;   // Parallel processing for files >1MB
-config.min_modulus = 16;         // Feature density control
+config.alpha = 0.5;  // 50% structure, 50% content
+config.enable_parallel = false;  // Disable parallel processing
 ```
-
-## Performance
-
-- **Time Complexity**: O(n) for hashing, O(1) for comparison (constant signature size)
-- **Space Complexity**: ~1KB per fingerprint + O(log n) structural data
-- **Throughput**: ~500 MB/s single-threaded, ~2 GB/s multi-threaded (on modern CPUs)
-
-## Use Cases
-
-- **Duplicate Detection**: Find similar files in large datasets
-- **Plagiarism Detection**: Compare documents for content similarity
-- **Version Control**: Identify related versions of files
-- **Malware Analysis**: Group similar malware samples
-- **Data Deduplication**: Reduce storage by identifying redundant files
 
 ## Algorithm Details
 
-### Structural Hash (Phase II)
+### DLAH (Dual-Layer Adaptive Hashing)
 
-- Adaptive block sizing: `BlockSize = max(64, FileSize / 256)`
-- Shannon entropy quantized to 4-bit nibbles (0-15 scale)
-- Ensures constant signature size (~128-256 blocks)
+LavinHash implements a three-phase pipeline:
 
-### Content Hash (Phase III)
+**Phase I: Adaptive Normalization**
+- Case folding (A-Z to a-z)
+- Whitespace normalization
+- Control character filtering
+- Zero-copy iterator-based processing
 
-- BuzHash rolling window: 64 bytes
-- Adaptive modulus: `M = FileSize / 1200` (targets ~1200 features)
-- Bloom filter: 8192 bits (1KB) with 5 hash functions
-- Prevents saturation even for GB-scale files
+**Phase II: Structural Hash**
+- Shannon entropy calculation with adaptive block sizing
+- Quantization to 4-bit nibbles
+- Compact vector representation
+- Levenshtein distance for comparison
+
+**Phase III: Content Hash**
+- BuzHash rolling hash algorithm
+- Adaptive modulus scaling
+- 8192-bit Bloom filter (1KB)
+- Jaccard similarity for comparison
+
+### Similarity Formula
+
+```
+Similarity = α × Levenshtein(Structure) + (1-α) × Jaccard(Content)
+```
+
+Where:
+- `α = 0.3` (default) - 30% weight to structure, 70% to content
+- Levenshtein: Normalized edit distance on entropy vectors
+- Jaccard: Set similarity on Bloom filter features
+
+### Performance Characteristics
+
+**Time Complexity:**
+- Hash generation: O(n) where n is data size
+- Hash comparison: O(1) - constant time regardless of file size
+
+**Space Complexity:**
+- Fingerprint size: ~1KB + O(log n) structural data
+- Memory usage: O(1) for comparison, O(n) for generation
+
+**Throughput:**
+- Single-threaded: ~500 MB/s
+- Multi-threaded: ~2 GB/s (files larger than 1MB)
+
+## Configuration
+
+### Basic Configuration
+
+```rust
+use lavinhash::HashConfig;
+
+let config = HashConfig {
+    enable_parallel: true,
+    alpha: 0.3,
+    min_modulus: 16,
+};
+```
+
+### Advanced Configuration
+
+**Adjusting Structure vs Content Weight:**
+
+```rust
+// More weight to structure (topology)
+config.alpha = 0.5;  // 50% structure, 50% content
+
+// More weight to content (features)
+config.alpha = 0.1;  // 10% structure, 90% content
+```
+
+**Controlling Feature Density:**
+
+```rust
+// Higher sensitivity (more features)
+config.min_modulus = 8;
+
+// Lower sensitivity (fewer features)
+config.min_modulus = 32;
+```
+
+**Parallel Processing:**
+
+```rust
+// Force sequential processing
+config.enable_parallel = false;
+
+// Enable automatic parallel processing for files > 1MB
+config.enable_parallel = true;
+```
+
+## Use Cases
+
+### Document Similarity Detection
+
+Compare different versions of documents to detect modifications and measure similarity.
+
+```javascript
+const doc1 = await readFile('document_v1.txt');
+const doc2 = await readFile('document_v2.txt');
+const similarity = wasm_compare_data(doc1, doc2);
+```
+
+### Duplicate Detection
+
+Identify duplicate or near-duplicate files in large datasets.
+
+```rust
+let files = vec![file1, file2, file3];
+let hashes: Vec<_> = files.iter()
+    .map(|f| generate_hash(f, &config).unwrap())
+    .collect();
+
+for i in 0..hashes.len() {
+    for j in i+1..hashes.len() {
+        let sim = compare_hashes(&hashes[i], &hashes[j], 0.3);
+        if sim > 90 {
+            println!("Files {} and {} are similar: {}%", i, j, sim);
+        }
+    }
+}
+```
+
+### Version Tracking
+
+Track changes between different versions of files or content.
+
+```javascript
+const versions = ['v1.txt', 'v2.txt', 'v3.txt'];
+const hashes = await Promise.all(
+    versions.map(async v => {
+        const data = await readFile(v);
+        return wasm_generate_hash(data);
+    })
+);
+
+for (let i = 0; i < hashes.length - 1; i++) {
+    const sim = wasm_compare_hashes(hashes[i], hashes[i + 1]);
+    console.log(`${versions[i]} -> ${versions[i+1]}: ${sim}% similar`);
+}
+```
 
 ## Building WASM
 
+To build the WebAssembly bindings:
+
 ```bash
-wasm-pack build --target web --out-dir wasm --out-name lavinhash
+# Install wasm-pack
+cargo install wasm-pack
+
+# Build for web
+wasm-pack build --target web --out-dir pkg --out-name lavinhash
+
+# The compiled files will be in the pkg/ directory
 ```
 
 ## Testing
 
+### Rust Tests
+
 ```bash
+# Run all tests
 cargo test
+
+# Run tests with output
+cargo test -- --nocapture
+
+# Run specific test
+cargo test test_generate_hash_basic
+```
+
+### Benchmarks
+
+```bash
+# Run benchmarks
 cargo bench
 ```
 
-## Contributing
+## Technical Specifications
 
-Contributions are welcome! Please read our [Contributing Guidelines](CONTRIBUTING.md) first.
+**Fingerprint Format:**
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+```
+Offset | Field            | Type     | Size
+-------|------------------|----------|-------------
+0x00   | Magic            | u8       | 1 byte (0x48)
+0x01   | Version          | u8       | 1 byte (0x01)
+0x02   | Struct Length    | u16 LE   | 2 bytes
+0x04   | Content Bloom    | u64[128] | 1024 bytes
+0x404  | Structural Data  | u8[]     | Variable
+```
+
+**Cross-Platform Determinism:**
+- Identical input produces identical hash on all platforms
+- Little-endian byte ordering
+- IEEE 754 floating-point compliance
+
+**Thread Safety:**
+- Hash generation is thread-safe
+- Parallel processing uses Rayon for data parallelism
+- No global state or locks
+
+## Examples
+
+See the `examples/` directory for complete working examples:
+
+- `basic_usage.rs` - Rust usage examples
+- `javascript_example.js` - Node.js integration
+- `browser_example.html` - Browser-based demo
+
+## Documentation
+
+- **API Documentation**: Available at [docs.rs/lavinhash](https://docs.rs/lavinhash)
+- **Technical Specification**: See `docs/TECHNICAL.md` in the repository
+- **Contributing Guide**: See `CONTRIBUTING.md`
 
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Acknowledgments
+## Repository
 
-- Inspired by ssdeep and tlsh fuzzy hashing algorithms
-- Built with Rust for maximum performance and safety
-- WASM bindings powered by wasm-bindgen
+Source code: [https://github.com/RafaCalRob/LavinHash](https://github.com/RafaCalRob/LavinHash)
 
-## Citation
+## Support
 
-If you use LavinHash in academic work, please cite:
-
-```bibtex
-@software{lavinhash2024,
-  title={LavinHash: High-Performance Fuzzy Hashing with Dual-Layer Adaptive Hashing},
-  author={LavinHash Contributors},
-  year={2024},
-  url={https://github.com/RafaCalRob/LavinHash}
-}
-```
-
-## Links
-
-- **Homepage**: https://bdovenbird.com/lavinhash/
-- **Documentation**: https://docs.rs/lavinhash
-- **Repository**: https://github.com/RafaCalRob/LavinHash
-- **Issues**: https://github.com/RafaCalRob/LavinHash/issues
+For bug reports and feature requests, please open an issue on GitHub:
+[https://github.com/RafaCalRob/LavinHash/issues](https://github.com/RafaCalRob/LavinHash/issues)
