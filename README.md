@@ -5,7 +5,7 @@
 [![npm version](https://img.shields.io/npm/v/lavinhash.svg)](https://www.npmjs.com/package/lavinhash)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-**[Try Live Demo](https://bdovenbird.com/lavinhash/demo)** | [API Documentation](#api-reference) | [GitHub Repository](https://github.com/RafaCalRob/LavinHash)
+**[Try Live Demo](https://bdovenbird.com/lavinhash/demo)** | **[Technical Deep Dive](https://bdovenbird.com/articles/lavinhash-engineering-similarity)** | [API Documentation](#api-reference) | [GitHub Repository](https://github.com/RafaCalRob/LavinHash)
 
 ![LavinHash Demo](captura1.png)
 
